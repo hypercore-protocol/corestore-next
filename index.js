@@ -1,4 +1,5 @@
 const { EventEmitter } = require('events')
+const safetyCatch = require('safety-catch')
 const crypto = require('hypercore-crypto')
 const sodium = require('sodium-universal')
 const Hypercore = require('hypercore')
@@ -37,11 +38,11 @@ module.exports = class Corestore extends EventEmitter {
   }
 
   async _generateKeys (opts) {
-    if (opts.discoveryKey) {
+    if (opts._discoveryKey) {
       return {
         keyPair: null,
         sign: null,
-        discoveryKey: opts.discoveryKey
+        discoveryKey: opts._discoveryKey
       }
     }
     if (!opts.name) {
@@ -94,10 +95,15 @@ module.exports = class Corestore extends EventEmitter {
 
     while (this.cores.has(id)) {
       const existing = this.cores.get(id)
-      if (existing) {
-        if (!existing.closing) return { from: existing, keyPair, sign }
+      if (existing.closing) {
         await existing.close()
+        continue
       }
+      if (!existing.opened) {
+        await existing.ready().catch(safetyCatch)
+        continue // If ready throws, the erroring core will be evicted now
+      }
+      return { from: existing, keyPair, sign }
     }
 
     const userData = {}
@@ -110,22 +116,28 @@ module.exports = class Corestore extends EventEmitter {
 
     const storageRoot = [CORES_DIR, id.slice(0, 2), id.slice(2, 4), id].join('/')
     const core = new Hypercore(p => this.storage(storageRoot + '/' + p), {
+      _preready: this._preready.bind(this),
       autoClose: true,
       encryptionKey: opts.encryptionKey || null,
-      keyPair: {
-        publicKey: keyPair.publicKey,
-        secretKey: null
-      },
       userData,
       sign: null,
-      _preready: this._preready.bind(this),
-      createIfMissing: !!opts.keyPair
+      createIfMissing: !opts._discoveryKey,
+      keyPair: keyPair && keyPair.publicKey
+        ? {
+            publicKey: keyPair.publicKey,
+            secretKey: null
+          }
+        : null
     })
 
     this.cores.set(id, core)
-    for (const { stream } of this._replicationStreams) {
-      core.replicate(stream)
-    }
+    core.ready().then(() => {
+      for (const { stream } of this._replicationStreams) {
+        core.replicate(stream)
+      }
+    }, () => {
+      this.cores.delete(id)
+    })
     core.once('close', () => {
       this.cores.delete(id)
     })
@@ -145,18 +157,21 @@ module.exports = class Corestore extends EventEmitter {
 
   replicate (isInitiator, opts) {
     const isExternal = isStream(isInitiator) || !!(opts && opts.stream)
-    const stream = Hypercore.createProtocolStream(isInitiator, opts)
+    const stream = Hypercore.createProtocolStream(isInitiator, {
+      ...opts,
+      ondiscoverykey: async discoveryKey => {
+        try {
+          const core = this.get({ _discoveryKey: discoveryKey })
+          await core.ready()
+          core.replicate(stream)
+        } catch (err) {
+          safetyCatch(err)
+        }
+      }
+    })
     for (const core of this.cores.values()) {
       core.replicate(stream)
     }
-    stream.on('discovery-key', discoveryKey => {
-      const core = this.get({ discoveryKey })
-      core.ready().then(() => {
-        core.replicate(stream)
-      }, () => {
-        stream.close(discoveryKey)
-      })
-    })
     const streamRecord = { stream, isExternal }
     this._replicationStreams.push(streamRecord)
     stream.once('close', () => {
@@ -216,8 +231,7 @@ function validateGetOptions (opts) {
   if (opts.name && opts.secretKey) throw new Error('Cannot provide both a name and a secret key')
   if (opts.publicKey && !Buffer.isBuffer(opts.publicKey)) throw new Error('publicKey option must be a Buffer')
   if (opts.secretKey && !Buffer.isBuffer(opts.secretKey)) throw new Error('secretKey option must be a Buffer')
-  if (opts.discoveryKey && !Buffer.isBuffer(opts.discoveryKey)) throw new Error('discoveryKey option must be a Buffer')
-  if (!opts.name && !opts.publicKey) throw new Error('Must provide either a name or a publicKey')
+  if (!opts._discoveryKey && (!opts.name && !opts.publicKey)) throw new Error('Must provide either a name or a publicKey')
   return opts
 }
 
