@@ -170,7 +170,7 @@ module.exports = class Corestore extends EventEmitter {
       }
     })
     for (const core of this.cores.values()) {
-      core.replicate(stream)
+      if (core.opened) core.replicate(stream) // If the core is not opened, it will be replicated in preload.
     }
     const streamRecord = { stream, isExternal }
     this._replicationStreams.push(streamRecord)
