@@ -159,14 +159,9 @@ module.exports = class Corestore extends EventEmitter {
     const isExternal = isStream(isInitiator) || !!(opts && opts.stream)
     const stream = Hypercore.createProtocolStream(isInitiator, {
       ...opts,
-      ondiscoverykey: async discoveryKey => {
-        try {
-          const core = this.get({ _discoveryKey: discoveryKey })
-          await core.ready()
-          core.replicate(stream)
-        } catch (err) {
-          safetyCatch(err)
-        }
+      ondiscoverykey: discoveryKey => {
+        const core = this.get({ _discoveryKey: discoveryKey })
+        return core.ready().catch(safetyCatch)
       }
     })
     for (const core of this.cores.values()) {
