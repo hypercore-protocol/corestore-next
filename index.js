@@ -3,6 +3,7 @@ const safetyCatch = require('safety-catch')
 const crypto = require('hypercore-crypto')
 const sodium = require('sodium-universal')
 const Hypercore = require('hypercore')
+const Buffer = require('b4a')
 
 const KeyManager = require('./lib/keys')
 
