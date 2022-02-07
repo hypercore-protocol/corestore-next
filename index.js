@@ -3,7 +3,7 @@ const safetyCatch = require('safety-catch')
 const crypto = require('hypercore-crypto')
 const sodium = require('sodium-universal')
 const Hypercore = require('hypercore')
-const Buffer = require('b4a')
+const b4a = require('b4a')
 
 const KeyManager = require('./lib/keys')
 
@@ -79,7 +79,7 @@ module.exports = class Corestore extends EventEmitter {
     if (!name) return
 
     const namespace = this._getPrereadyUserData(core, USERDATA_NAMESPACE_KEY)
-    const { publicKey, sign } = await this.keys.createHypercoreKeyPair(name.toString(), namespace)
+    const { publicKey, sign } = await this.keys.createHypercoreKeyPair(b4a.toString(name), namespace)
     if (!publicKey.equals(core.key)) throw new Error('Stored core key does not match the provided name')
 
     // TODO: Should Hypercore expose a helper for this, or should preready return keypair/sign?
@@ -92,7 +92,7 @@ module.exports = class Corestore extends EventEmitter {
     await this.ready()
 
     const { discoveryKey, keyPair, sign } = await this._generateKeys(opts)
-    const id = discoveryKey.toString('hex')
+    const id = b4a.toString(discoveryKey, 'hex')
 
     while (this.cores.has(id)) {
       const existing = this.cores.get(id)
@@ -106,7 +106,7 @@ module.exports = class Corestore extends EventEmitter {
 
     const userData = {}
     if (opts.name) {
-      userData[USERDATA_NAME_KEY] = Buffer.from(opts.name)
+      userData[USERDATA_NAME_KEY] = b4a.from(opts.name)
       userData[USERDATA_NAMESPACE_KEY] = this._namespace
     }
 
@@ -174,7 +174,7 @@ module.exports = class Corestore extends EventEmitter {
   }
 
   namespace (name) {
-    if (!Buffer.isBuffer(name)) name = Buffer.from(name)
+    if (!b4a.isBuffer(name)) name = b4a.from(name)
     return new Corestore(this.storage, {
       _namespace: generateNamespace(this._namespace, name),
       _opening: this._opening,
@@ -212,7 +212,7 @@ module.exports = class Corestore extends EventEmitter {
 }
 
 function validateGetOptions (opts) {
-  if (Buffer.isBuffer(opts)) return { key: opts, publicKey: opts }
+  if (b4a.isBuffer(opts)) return { key: opts, publicKey: opts }
   if (opts.key) {
     opts.publicKey = opts.key
   }
@@ -222,17 +222,17 @@ function validateGetOptions (opts) {
   }
   if (opts.name && typeof opts.name !== 'string') throw new Error('name option must be a String')
   if (opts.name && opts.secretKey) throw new Error('Cannot provide both a name and a secret key')
-  if (opts.publicKey && !Buffer.isBuffer(opts.publicKey)) throw new Error('publicKey option must be a Buffer')
-  if (opts.secretKey && !Buffer.isBuffer(opts.secretKey)) throw new Error('secretKey option must be a Buffer')
+  if (opts.publicKey && !b4a.isBuffer(opts.publicKey)) throw new Error('publicKey option must be a Buffer')
+  if (opts.secretKey && !b4a.isBuffer(opts.secretKey)) throw new Error('secretKey option must be a Buffer')
   if (!opts._discoveryKey && (!opts.name && !opts.publicKey)) throw new Error('Must provide either a name or a publicKey')
   return opts
 }
 
 function generateNamespace (first, second) {
-  if (!Buffer.isBuffer(first)) first = Buffer.from(first)
-  if (second && !Buffer.isBuffer(second)) second = Buffer.from(second)
-  const out = Buffer.allocUnsafe(32)
-  sodium.crypto_generichash(out, second ? Buffer.concat([first, second]) : first)
+  if (!b4a.isBuffer(first)) first = b4a.from(first)
+  if (second && !b4a.isBuffer(second)) second = b4a.from(second)
+  const out = b4a.allocUnsafe(32)
+  sodium.crypto_generichash(out, second ? b4a.concat([first, second]) : first)
   return out
 }
 
