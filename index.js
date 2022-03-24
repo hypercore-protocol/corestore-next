@@ -237,8 +237,8 @@ function validateGetOptions (opts) {
   }
   if (opts.name && typeof opts.name !== 'string') throw new Error('name option must be a String')
   if (opts.name && opts.secretKey) throw new Error('Cannot provide both a name and a secret key')
-  if (opts.publicKey && !b4a.isBuffer(opts.publicKey)) throw new Error('publicKey option must be a Buffer')
-  if (opts.secretKey && !b4a.isBuffer(opts.secretKey)) throw new Error('secretKey option must be a Buffer')
+  if (opts.publicKey && !b4a.isBuffer(opts.publicKey)) throw new Error('publicKey option must be a Buffer or Uint8Array')
+  if (opts.secretKey && !b4a.isBuffer(opts.secretKey)) throw new Error('secretKey option must be a Buffer or Uint8Array')
   if (!opts._discoveryKey && (!opts.name && !opts.publicKey)) throw new Error('Must provide either a name or a publicKey')
   return opts
 }
