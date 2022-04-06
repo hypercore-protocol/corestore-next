@@ -201,7 +201,9 @@ module.exports = class Corestore extends EventEmitter {
     return { from: core, keyPair, auth }
   }
 
-  createKeyPair (name) {
+  async createKeyPair (name) {
+    if (!this.primaryKey) await this._opening
+
     const keyPair = {
       publicKey: b4a.allocUnsafe(sodium.crypto_sign_PUBLICKEYBYTES),
       secretKey: b4a.alloc(sodium.crypto_sign_SECRETKEYBYTES),
