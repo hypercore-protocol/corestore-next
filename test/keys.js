@@ -41,7 +41,7 @@ test('short user-provided token will throw', async t => {
 })
 
 test('persistent storage regenerates keys correctly', async t => {
-  const testPath = p.resolve(__dirname, 'test-data')
+  const testPath = p.join(__dirname, 'test-data')
 
   const keys1 = await KeyManager.fromStorage((name) => raf(testPath, { directory: testPath }))
   const kp1 = await keys1.createHypercoreKeyPair('core1')
@@ -50,6 +50,9 @@ test('persistent storage regenerates keys correctly', async t => {
   const kp2 = await keys2.createHypercoreKeyPair('core1')
 
   t.alike(kp1.publicKey, kp2.publicKey)
+
+  await keys1.close()
+  await keys2.close()
 
   await fs.promises.rm(testPath, { recursive: true })
 })
