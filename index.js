@@ -7,13 +7,13 @@ const Hypercore = require('hypercore')
 const b4a = require('b4a')
 
 const DEFAULT_TOKEN = b4a.alloc(0)
-const NAMESPACE = b4a.from('corestore')
 
 const CORES_DIR = 'cores'
 const PRIMARY_KEY_FILE_NAME = 'primary-key'
 const USERDATA_NAME_KEY = '@corestore/name'
 const USERDATA_NAMESPACE_KEY = '@corestore/namespace'
 const DEFAULT_NAMESPACE = generateNamespace('@corestore/default')
+const DEFAULT_APPLICATION = 'corestore'
 
 module.exports = class Corestore extends EventEmitter {
   constructor (storage, opts = {}) {
@@ -26,6 +26,7 @@ module.exports = class Corestore extends EventEmitter {
     this._keyStorage = null
     this._primaryKey = opts.primaryKey
     this._namespace = opts.namespace || DEFAULT_NAMESPACE
+    this._application = b4a.from(opts.application || DEFAULT_APPLICATION)
     this._replicationStreams = opts._streams || []
     this._overwrite = opts.overwrite === true
 
@@ -215,7 +216,7 @@ module.exports = class Corestore extends EventEmitter {
       }
     }
 
-    const seed = deriveSeed(this.primaryKey, this._namespace, name)
+    const seed = deriveSeed(this.primaryKey, this._application, this._namespace, name)
     sodium.crypto_sign_seed_keypair(keyPair.publicKey, keyPair.secretKey, seed)
 
     return keyPair
@@ -278,6 +279,7 @@ module.exports = class Corestore extends EventEmitter {
     if (!b4a.isBuffer(name)) name = b4a.from(name)
     return new Corestore(this.storage, {
       namespace: generateNamespace(this._namespace, name),
+      application: this._application,
       _opening: this._opening,
       _cores: this.cores,
       _streams: this._replicationStreams,
@@ -355,13 +357,13 @@ function isStream (s) {
   return typeof s === 'object' && s && typeof s.pipe === 'function'
 }
 
-function deriveSeed (profile, token, name, output) {
+function deriveSeed (profile, application, token, name, output) {
   if (token && token.length < 32) throw new Error('Token must be a Buffer with length >= 32')
   if (!name || typeof name !== 'string') throw new Error('name must be a String')
   if (!output) output = b4a.alloc(32)
 
   blake2b.batch(output, [
-    NAMESPACE,
+    application,
     token || DEFAULT_TOKEN,
     b4a.from(b4a.byteLength(name, 'ascii') + '\n' + name, 'ascii')
   ], profile)

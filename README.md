@@ -37,13 +37,16 @@ Loads a Hypercore, either by name (if the `name` option is provided), or from th
   name: 'a-name', // name to derive the Hypercore keyPair from
   key: key, // or pass the public key of a non-writable Hypercore
   namespace: ns, // optional namespace (32 bytes Buffer)
+  application: 'my-application', // optional application name
   ...hypercoreOpt
 }
 ```
 
 If that Hypercore has previously been loaded, subsequent calls to `get` will return a new Hypercore session on the existing core.
 
-All other options besides `name`, `key`, and `namespace` will be forwarded to the Hypercore constructor.
+All other options besides `name`, `key`, `namespace`, and `application` will be forwarded to the Hypercore constructor.
+
+`application` is a non empty string. Allows sharing the same storage, `primaryKey` and `names` between multiple applications.
 
 #### `const stream = store.replicate(opts)`
 Creates a replication stream that's capable of replicating all Hypercores that are managed by the Corestore, assuming the remote peer has the correct capabilities.

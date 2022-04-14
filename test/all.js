@@ -263,6 +263,24 @@ test('different primary keys yield different keypairs', async function (t) {
   t.unlike(kp1.publicKey, kp2.publicKey)
 })
 
+test('different applications yield different keypairs', async function (t) {
+  const pk = randomBytes(32)
+
+  const storeDefault = new Corestore(ram, { primaryKey: pk })
+  const store1 = new Corestore(ram, { application: 'corestore', primaryKey: pk })
+  const store2 = new Corestore(ram, { application: 'foo', primaryKey: pk })
+
+  const kpDefault = await storeDefault.createKeyPair('hello')
+  const kp1 = await store1.createKeyPair('hello')
+  const kp2 = await store2.createKeyPair('hello')
+
+  t.alike(kp1.publicKey, kpDefault.publicKey)
+  t.unlike(kp1.publicKey, kp2.publicKey)
+
+  const ns = store2.namespace('bar')
+  t.alike(ns._application, store2._application)
+})
+
 function tmpdir () {
   return path.join(os.tmpdir(), 'corestore-' + Math.random().toString(16).slice(2))
 }
