@@ -25,7 +25,7 @@ module.exports = class Corestore extends EventEmitter {
 
     this._keyStorage = null
     this._primaryKey = opts.primaryKey
-    this._namespace = opts._namespace || DEFAULT_NAMESPACE
+    this._namespace = opts.namespace || DEFAULT_NAMESPACE
     this._replicationStreams = opts._streams || []
     this._overwrite = opts.overwrite === true
 
@@ -277,7 +277,7 @@ module.exports = class Corestore extends EventEmitter {
   namespace (name) {
     if (!b4a.isBuffer(name)) name = b4a.from(name)
     return new Corestore(this.storage, {
-      _namespace: generateNamespace(this._namespace, name),
+      namespace: generateNamespace(this._namespace, name),
       _opening: this._opening,
       _cores: this.cores,
       _streams: this._replicationStreams,
