@@ -3,6 +3,8 @@ const crypto = require('hypercore-crypto')
 const ram = require('random-access-memory')
 const os = require('os')
 const path = require('path')
+const b4a = require('b4a')
+const sodium = require('sodium-universal')
 
 const Corestore = require('..')
 
@@ -201,6 +203,72 @@ test('closing a namespace does not close cores', async function (t) {
   t.ok(core2.closed)
 })
 
+test('findingPeers', async function (t) {
+  t.plan(6)
+
+  const store = new Corestore(ram)
+
+  const ns1 = store.namespace('ns1')
+  const ns2 = store.namespace('ns2')
+
+  const a = ns1.get(Buffer.alloc(32).fill('a'))
+  const b = ns2.get(Buffer.alloc(32).fill('b'))
+
+  const done = ns1.findingPeers()
+
+  let aUpdated = false
+  let bUpdated = false
+  let cUpdated = false
+
+  const c = ns1.get(Buffer.alloc(32).fill('c'))
+
+  a.update().then(function (bool) {
+    aUpdated = true
+  })
+
+  b.update().then(function (bool) {
+    bUpdated = true
+  })
+
+  c.update().then(function (bool) {
+    cUpdated = true
+  })
+
+  await new Promise(resolve => setImmediate(resolve))
+
+  t.is(aUpdated, false)
+  t.is(bUpdated, true)
+  t.is(cUpdated, false)
+
+  done()
+
+  await new Promise(resolve => setImmediate(resolve))
+
+  t.is(aUpdated, true)
+  t.is(bUpdated, true)
+  t.is(cUpdated, true)
+})
+
+test('different primary keys yield different keypairs', async function (t) {
+  const pk1 = randomBytes(32)
+  const pk2 = randomBytes(32)
+  t.unlike(pk1, pk2)
+
+  const store1 = new Corestore(ram, { primaryKey: pk1 })
+  const store2 = new Corestore(ram, { primaryKey: pk2 })
+
+  const kp1 = await store1.createKeyPair('hello')
+  const kp2 = await store2.createKeyPair('hello')
+
+  t.unlike(kp1.publicKey, kp2.publicKey)
+})
+
 function tmpdir () {
   return path.join(os.tmpdir(), 'corestore-' + Math.random().toString(16).slice(2))
+}
+
+function randomBytes (n) {
+  const buf = b4a.allocUnsafe(n)
+  sodium.randombytes_buf(buf)
+  return buf
 }
