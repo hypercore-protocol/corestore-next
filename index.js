@@ -11,6 +11,7 @@ const DEFAULT_TOKEN = b4a.alloc(0)
 const CORES_DIR = 'cores'
 const PRIMARY_KEY_FILE_NAME = 'primary-key'
 const USERDATA_NAME_KEY = '@corestore/name'
+const USERDATA_APPLICATION_KEY = '@corestore/application'
 const USERDATA_NAMESPACE_KEY = '@corestore/namespace'
 const DEFAULT_NAMESPACE = generateNamespace('@corestore/default')
 const DEFAULT_APPLICATION = 'corestore'
@@ -134,8 +135,9 @@ module.exports = class Corestore extends EventEmitter {
     const name = this._getPrereadyUserData(core, USERDATA_NAME_KEY)
     if (!name) return
 
+    const application = this._getPrereadyUserData(core, USERDATA_APPLICATION_KEY)
     const namespace = this._getPrereadyUserData(core, USERDATA_NAMESPACE_KEY)
-    const { publicKey, auth } = await this.createKeyPair(b4a.toString(name), namespace)
+    const { publicKey, auth } = await this.createKeyPair(b4a.toString(name), { application, namespace })
     if (!b4a.equals(publicKey, core.key)) throw new Error('Stored core key does not match the provided name')
 
     // TODO: Should Hypercore expose a helper for this, or should preready return keypair/auth?
@@ -163,6 +165,7 @@ module.exports = class Corestore extends EventEmitter {
     const userData = {}
     if (opts.name) {
       userData[USERDATA_NAME_KEY] = b4a.from(opts.name)
+      userData[USERDATA_APPLICATION_KEY] = this._application
       userData[USERDATA_NAMESPACE_KEY] = this._namespace
     }
 
@@ -202,7 +205,7 @@ module.exports = class Corestore extends EventEmitter {
     return { from: core, keyPair, auth }
   }
 
-  async createKeyPair (name) {
+  async createKeyPair (name, opts = {}) {
     if (!this.primaryKey) await this._opening
 
     const keyPair = {
@@ -216,7 +219,12 @@ module.exports = class Corestore extends EventEmitter {
       }
     }
 
-    const seed = deriveSeed(this.primaryKey, this._application, this._namespace, name)
+    const seed = deriveSeed(
+      this.primaryKey,
+      opts.application || this._application,
+      opts.namespace || this._namespace,
+      name
+    )
     sodium.crypto_sign_seed_keypair(keyPair.publicKey, keyPair.secretKey, seed)
 
     return keyPair

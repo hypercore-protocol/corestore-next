@@ -144,10 +144,12 @@ test('core uncached when all sessions close', async function (t) {
   t.is(store.cores.size, 0)
 })
 
-test('writable core loaded from name userData', async function (t) {
+test('writable core loaded from name, application, and namespace userData', async function (t) {
   const dir = tmpdir()
+  const customNS = Buffer.from('90c5890b30ceb133722291e78db998d0e147cb50de92740411f669c8c9abf6f1', 'hex')
+  const customApp = 'custom-app'
 
-  let store = new Corestore(dir)
+  let store = new Corestore(dir, { application: customApp, namespace: customNS })
   let core = store.get({ name: 'main' })
   await core.ready()
   const key = core.key
