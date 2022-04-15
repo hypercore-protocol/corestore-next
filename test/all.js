@@ -283,6 +283,36 @@ test('different applications yield different keypairs', async function (t) {
   t.alike(ns._application, store2._application)
 })
 
+test("Key derivation should have no dependency on corestore's constants", async function (t) {
+  const primaryKey = randomBytes(32)
+
+  const APP_PREFIX = Buffer.from('test-application')
+  const customNS = b4a.alloc(0)
+
+  const ns1 = new Corestore(ram, { application: APP_PREFIX, namespace: customNS, primaryKey })
+  const pk1 = (await ns1.createKeyPair('hello')).publicKey
+
+  t.alike(pk1, createKeyPair(APP_PREFIX, customNS, 'hello', primaryKey).publicKey)
+
+  const ns2 = ns1.namespace(pk1)
+  const pk2 = (await ns2.createKeyPair('hello')).publicKey
+
+  t.alike(pk2, createKeyPair(APP_PREFIX, ns2._namespace, 'hello', primaryKey).publicKey)
+
+  // Standalone key derivation that the corestore should be able to replicate
+  function createKeyPair (prefix, namespace, name, pk) {
+    name = b4a.from(name)
+    const seed = b4a.alloc(32)
+    sodium.crypto_generichash_batch(seed, [prefix, namespace, name], pk)
+    const keyPair = {
+      publicKey: b4a.allocUnsafe(sodium.crypto_sign_PUBLICKEYBYTES),
+      secretKey: b4a.alloc(sodium.crypto_sign_SECRETKEYBYTES)
+    }
+    sodium.crypto_sign_seed_keypair(keyPair.publicKey, keyPair.secretKey, seed)
+    return keyPair
+  }
+})
+
 function tmpdir () {
   return path.join(os.tmpdir(), 'corestore-' + Math.random().toString(16).slice(2))
 }

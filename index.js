@@ -366,14 +366,13 @@ function isStream (s) {
 }
 
 function deriveSeed (profile, application, token, name, output) {
-  if (token && token.length < 32) throw new Error('Token must be a Buffer with length >= 32')
   if (!name || typeof name !== 'string') throw new Error('name must be a String')
   if (!output) output = b4a.alloc(32)
 
   blake2b.batch(output, [
     application,
     token || DEFAULT_TOKEN,
-    b4a.from(b4a.byteLength(name, 'ascii') + '\n' + name, 'ascii')
+    b4a.from(name)
   ], profile)
 
   return output

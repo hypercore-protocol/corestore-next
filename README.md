@@ -36,7 +36,7 @@ Loads a Hypercore, either by name (if the `name` option is provided), or from th
 {
   name: 'a-name', // name to derive the Hypercore keyPair from
   key: key, // or pass the public key of a non-writable Hypercore
-  namespace: ns, // optional namespace (32 bytes Buffer)
+  namespace: ns, // optional namespace (Buffer)
   application: 'my-application', // optional application name
   ...hypercoreOpt
 }
