@@ -311,6 +311,160 @@ test('keypair auth verify', async function (t) {
   t.absent(keyPair.auth.verify(message, b4a.alloc(64)))
 })
 
+test('reopen a hypercore with an encryption key after being opened through discovery', async function (t) {
+  // Create an encrypted drive
+  const originStore = new Corestore(tmpdir())
+  const encryptionKey = randomBytes(32)
+  const origin = originStore.get({ name: 'origin', encryptionKey })
+  await origin.ready()
+
+  const originContent = b4a.from(JSON.stringify({ foo: 'bar' }))
+  await origin.append(originContent)
+
+  const coreOpts = {
+    key: origin.key,
+    encryptionKey: origin.encryptionKey
+  }
+
+  t.is(coreOpts.key.length, 32)
+  t.is(coreOpts.encryptionKey, encryptionKey)
+
+  const cloneDir = tmpdir()
+  // Clone to storage then close cloneStore
+  await openClone()
+  // open clone from storage
+  await openClone()
+
+  async function openClone () {
+    const cloneStore = new Corestore(cloneDir)
+    const s = cloneStore.replicate(true)
+    s.pipe(originStore.replicate(false)).pipe(s)
+
+    // Ensure that the clone is opened by discoveryKey (no options)
+    await cloneStore.ready()
+
+    const clone = cloneStore.get(coreOpts)
+    await clone.ready()
+
+    t.is(clone.encryptionKey, encryptionKey, 'encryptionKey is missing')
+
+    const cloneContent = await clone.get(0)
+    t.is(cloneContent.toString(), originContent.toString())
+
+    await cloneStore.close()
+  }
+})
+
+test('opening a non encrypted session should not affect encrypted ones', async function (t) {
+  // Create an encrypted drive
+  const originStore = new Corestore(tmpdir())
+  const encryptionKey = randomBytes(32)
+  const origin = originStore.get({
+    name: 'origin',
+    encryptionKey,
+    valueEncoding: 'utf8'
+  })
+  await origin.ready()
+  await origin.append('Plain text ™')
+
+  t.is(origin.encryptionKey.length, 32)
+
+  const cloneStore = new Corestore(tmpdir())
+  const s = cloneStore.replicate(true)
+  s.pipe(originStore.replicate(false)).pipe(s)
+
+  // Opening a core without encryption key but not await opening
+  cloneStore.get({ key: origin.key })
+
+  // Opening a core _with_ encryption key, while the core above is still opening
+  const clone = cloneStore.get({
+    key: origin.key,
+    encryptionKey,
+    valueEncoding: 'utf8'
+  })
+  await clone.ready()
+
+  const cloneContent = await clone.get(0)
+  t.is(cloneContent, 'Plain text ™', 'Content was not decrypted')
+})
+
+test('reopen a hypercore with an encryption key after being opened through discovery', async function (t) {
+  // Create an encrypted drive
+  const originStore = new Corestore(tmpdir())
+  const encryptionKey = randomBytes(32)
+  const origin = originStore.get({ name: 'origin', encryptionKey })
+  await origin.ready()
+
+  const originContent = b4a.from(JSON.stringify({ foo: 'bar' }))
+  await origin.append(originContent)
+
+  const coreOpts = {
+    key: origin.key,
+    encryptionKey: origin.encryptionKey
+  }
+
+  t.is(coreOpts.key.length, 32)
+  t.is(coreOpts.encryptionKey, encryptionKey)
+
+  const cloneDir = tmpdir()
+  // Clone to storage then close cloneStore
+  await openClone()
+  // open clone from storage
+  await openClone()
+
+  async function openClone () {
+    const cloneStore = new Corestore(cloneDir)
+    const s = cloneStore.replicate(true)
+    s.pipe(originStore.replicate(false)).pipe(s)
+
+    // Ensure that the clone is opened by discoveryKey (no options)
+    await cloneStore.ready()
+
+    const clone = cloneStore.get(coreOpts)
+    await clone.ready()
+
+    t.is(clone.encryptionKey, encryptionKey, 'encryptionKey is missing')
+
+    const cloneContent = await clone.get(0)
+    t.is(cloneContent.toString(), originContent.toString())
+
+    await cloneStore.close()
+  }
+})
+
+test('opening a non encrypted session should not affect encrypted ones', async function (t) {
+  // Create an encrypted drive
+  const originStore = new Corestore(tmpdir())
+  const encryptionKey = randomBytes(32)
+  const origin = originStore.get({
+    name: 'origin',
+    encryptionKey,
+    valueEncoding: 'utf8'
+  })
+  await origin.ready()
+  await origin.append('Plain text ™')
+
+  t.is(origin.encryptionKey.length, 32)
+
+  const cloneStore = new Corestore(tmpdir())
+  const s = cloneStore.replicate(true)
+  s.pipe(originStore.replicate(false)).pipe(s)
+
+  // Opening a core without encryption key but not await opening
+  cloneStore.get({ key: origin.key })
+
+  // Opening a core _with_ encryption key, while the core above is still opening
+  const clone = cloneStore.get({
+    key: origin.key,
+    encryptionKey,
+    valueEncoding: 'utf8'
+  })
+  await clone.ready()
+
+  const cloneContent = await clone.get(0)
+  t.is(cloneContent, 'Plain text ™', 'Content was not decrypted')
+})
+
 function tmpdir () {
   return path.join(os.tmpdir(), 'corestore-' + Math.random().toString(16).slice(2))
 }
