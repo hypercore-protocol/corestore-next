@@ -228,7 +228,9 @@ module.exports = class Corestore extends EventEmitter {
   get (opts = {}) {
     opts = validateGetOptions(opts)
 
-    if (this.cache || opts.cache === true) opts.cache = defaultCache()
+    if (opts.cache !== false) {
+      opts.cache = opts.cache === true || (this.cache && !opts.cache) ? defaultCache() : opts.cache
+    }
 
     const core = new Hypercore(null, {
       ...opts,
