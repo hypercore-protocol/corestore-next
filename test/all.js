@@ -325,6 +325,14 @@ test('core caching after reopen regression', async function (t) {
   t.pass('did not infinite loop')
 })
 
+test.only('creating a session on a core that is not ready works', async t => {
+  const store = new Corestore(ram)
+  const core = store.get({ name: 'test-core' })
+  const session = core.session()
+  await session.ready()
+  t.pass('could create a session before ready')
+})
+
 function tmpdir () {
   return path.join(os.tmpdir(), 'corestore-' + Math.random().toString(16).slice(2))
 }
