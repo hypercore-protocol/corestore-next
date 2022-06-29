@@ -287,6 +287,7 @@ module.exports = class Corestore extends EventEmitter {
     return new Corestore(this.storage, {
       primaryKey: this._opening.then(() => this.primaryKey),
       namespace: generateNamespace(this._namespace, name),
+      cache: this.cache,
       _opening: this._opening,
       _cores: this.cores,
       _streams: this._replicationStreams,
