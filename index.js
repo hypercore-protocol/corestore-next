@@ -342,6 +342,10 @@ function validateGetOptions (opts) {
     opts.publicKey = opts.keyPair.publicKey
     opts.secretKey = opts.keyPair.secretKey
   }
+  if (opts.publicKey && opts.name) {
+    // The key takes precedence over the name
+    opts.name = null
+  }
   if (opts.name && typeof opts.name !== 'string') throw new Error('name option must be a String')
   if (opts.name && opts.secretKey) throw new Error('Cannot provide both a name and a secret key')
   if (opts.publicKey && !b4a.isBuffer(opts.publicKey)) throw new Error('publicKey option must be a Buffer or Uint8Array')

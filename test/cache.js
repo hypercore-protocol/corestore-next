@@ -44,3 +44,12 @@ test('core cache on namespace', async function (t) {
   t.ok(c1.cache)
   t.ok(c2.cache)
 })
+
+test('false cache option does not enable caching', async function (t) {
+  const store = new Corestore(RAM)
+
+  const core = store.get({ name: 'core' })
+  await core.ready()
+
+  t.absent(core.cache)
+})

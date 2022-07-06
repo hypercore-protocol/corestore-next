@@ -323,6 +323,17 @@ test('core caching after reopen regression', async function (t) {
   t.pass('did not infinite loop')
 })
 
+test('when passed both key and name options, the key takes precedence', async function (t) {
+  const store = new Corestore(ram)
+  const core1 = store.get({ name: 'test-core' })
+  await core1.ready()
+
+  const core2 = store.get({ key: core1.key, name: 'test-core-2' })
+  await core2.ready()
+
+  t.alike(core1.key, core2.key)
+})
+
 function tmpdir () {
   return path.join(os.tmpdir(), 'corestore-' + Math.random().toString(16).slice(2))
 }
