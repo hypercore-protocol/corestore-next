@@ -8,7 +8,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/hypercore-protocol/corestore.git"
+    "url": "git+https://github.com/hypercore-protocol/corestore-next.git"
   },
   "keywords": [
     "corestore"
@@ -16,9 +16,9 @@
   "author": "Andrew Osheroff <andrewosh@gmail.com>",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/hypercore-protocol/corestore/issues"
+    "url": "https://github.com/hypercore-protocol/corestore-next/issues"
   },
-  "homepage": "https://github.com/hypercore-protocol/corestore#readme",
+  "homepage": "https://github.com/hypercore-protocol/corestore-next#readme",
   "devDependencies": {
     "brittle": "^2.2.10",
     "random-access-memory": "^4.0.0",
